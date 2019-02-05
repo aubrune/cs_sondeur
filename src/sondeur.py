@@ -23,8 +23,8 @@ if __name__=='__main__':
     t = TransformStamped()              #Permet la transformation du parent à l'enfant    
     fear = TransformStamped()
     
-    x_table, y_table, z_table = 0.40, 0, 0.75   #Diverses variables pour le marker table
-    quartenion = quaternion_from_euler(0, 0.05, 0)
+    x_table, y_table, z_table = 0, 0.50, 0.75   #Diverses variables pour le marker table
+    quartenion = quaternion_from_euler(0, 0, 1.5707)
     qx_table, qy_table, qz_table, qw_table = quartenion[0], quartenion[1], quartenion[2], quartenion[3]
     
     t.header.frame_id = "world"                 #Repère tableau
