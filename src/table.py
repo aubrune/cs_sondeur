@@ -44,7 +44,7 @@ if __name__=='__main__':
                                         Marker, 
                                         queue_size=5)           
     table = Marker(type=Marker.CUBE,                                        #Forme du marker    #Définition du marker
-                    color=ColorRGBA(255,255,255,0.8),                       #Couleur
+                    color=ColorRGBA(255,255,255,0.5),                       #Couleur
                     pose=Pose(Point(x_table, y_table, z_table),             #Position
                     Quaternion(qx_table, qy_table, qz_table, qw_table)),    #Rotation
                     scale=Vector3(0.01, 1.50, 1.50),                        #Taille
