@@ -8,15 +8,18 @@ import sys
 from geometry_msgs.msg import Pose
 from tf.transformations import quaternion_from_euler
 
-nb_votes = 0
-nb_blocks = 0
-nb_sticks = 0
+nb_total_votes = 0      #Nombre total de votes
+nb_total_blocks = 1     #Nombre total de blocs
+nb_votes_block = 0      #Nombre de votes à l'intérieur du bloc courant
 
-marker_gap = 0.03
-sticks_gap = 0.015
-stick_length = 0.04
+MARKER_GAP = 0.03       #Espacement entre le marqueur et le tableau
+STICKS_GAP = 0.015      #Espacement entre les batons de vote
+STICK_LENGTH = 0.04     #Longueur du trait du baton
+BLOCKS_GAP = 0.03       #Espacement entre les blocs
+LINE_GAP = 0.03         #Espacement entre les lignes de vote
+NB_MAX_BLOCKS = 3       #Nombre maximum de blocs sur chaque ligne
 
-def go_to_initial_position():
+def go_to_initial_position():   #Fonction qui amène le robot à la position de départ
     print("En attente de transformation")
     while not rospy.is_shutdown():
         try:
@@ -39,62 +42,65 @@ def go_to_initial_position():
         pose_goal.orientation.z = qz_robot
         pose_goal.orientation.w = qw_robot
         
-        move_group.set_pose_target(pose_goal)
-        move_group.go(wait = True)
-        move_group.stop()
-        move_group.clear_pose_targets() 
+        go_to_pose_goal()
         break   
 
-def trace_stick():
-    #Fonction traçant un baton pour les 4 premiers votes de chaque bloc
+def trace_stick():              #Fonction traçant un baton
     move_forward()
     print "Trace un trait"
-    pose_goal.position.z -= stick_length
-    move_group.set_pose_target(pose_goal)
-    move_group.go(wait = True)
-    move_group.stop()
-    move_group.clear_pose_targets() 
+    pose_goal.position.z -= STICK_LENGTH
+    go_to_pose_goal() 
     move_back()
 
-def trace_line():
-    #Fonction traçant un trait en diagonale pour le 5 vote de chaque bloc
+def trace_line():               #Fonction traçant un trait en diagonale
+    move_up()
     move_forward()
     print "Trace une ligne"
-    pose_goal.position.z -= stick_length
-    pose_goal.position.x -= 3 * sticks_gap
-    move_group.set_pose_target(pose_goal)
-    move_group.go(wait = True)
-    move_group.stop()
-    move_group.clear_pose_targets()
+    pose_goal.position.z -= STICK_LENGTH
+    pose_goal.position.x -= 3 * STICKS_GAP
+    go_to_pose_goal()
     move_back()
     
-def move_back():
+def move_up():                  #Fonction qui remonte le bras pour le préparer à tracer une ligne en diagonale
+    print "Remonte"
+    pose_goal.position.z += STICK_LENGTH
+    go_to_pose_goal()
+    
+def move_back():                #Fonction qui recule le marqueur du tableau
     print "Recule"
-    pose_goal.position.y -= marker_gap
-    move_group.set_pose_target(pose_goal)
-    move_group.go(wait = True)
-    move_group.stop()
-    move_group.clear_pose_targets() 
+    pose_goal.position.y -= MARKER_GAP
+    go_to_pose_goal()
 
-def move_forward():
+def move_forward():             #Fonction qui avance le marqueur vers le tableau
     print "Avance"
-    pose_goal.position.y += marker_gap
-    move_group.set_pose_target(pose_goal)
-    move_group.go(wait = True)
-    move_group.stop()
-    move_group.clear_pose_targets() 
+    pose_goal.position.y += MARKER_GAP
+    go_to_pose_goal()
 
-def move_to_next_stick():
+def move_to_next_stick():       #Fonction qui bouge le marqueur au prochain baton
     print "Passe au prochain trait"
-    pose_goal.position.z += stick_length
-    pose_goal.position.x += sticks_gap
+    pose_goal.position.z += STICK_LENGTH
+    pose_goal.position.x += STICKS_GAP
+    go_to_pose_goal()
+    
+def go_to_pose_goal():          #Fonction qui valide la trajectoire du bras
     move_group.set_pose_target(pose_goal)
     move_group.go(wait = True)
     move_group.stop()
     move_group.clear_pose_targets() 
 
-if __name__=='__main__':
-    rospy.init_node('sondeur')          #Initialisation du node 'sondeur'
+def change_line():             #Fonction qui change la ligne courante
+    print "Change de ligne"
+    pose_goal.position.z -= LINE_GAP
+    go_to_pose_goal()
+    
+def change_block():             #Fonction qui change le bloc courant
+    print "Change de bloc"
+    pose_goal.position.x += 3 * STICKS_GAP + BLOCKS_GAP
+    pose_goal.position.z += STICK_LENGTH
+    go_to_pose_goal()
+
+if __name__=='__main__':        #MAIN
+    rospy.init_node('sondeur')  #Initialisation du node 'sondeur'
     rospy.sleep(1)                      
     
     group_name = "edo"
@@ -109,14 +115,26 @@ if __name__=='__main__':
     rate = rospy.Rate(10.0)
     go_to_initial_position()
     while not rospy.is_shutdown():
-        vote = raw_input("Appuyez sur une touche puis sur entrée pour voter : ")
-        nb_votes += 1
-        print "Vote n°", nb_votes
-        print "Résultat du modulo 5 :", nb_votes % 5
-        if nb_votes % 5 == 0:
+        vote = raw_input("Appuyez sur entrée pour voter ou q pour quitter : ")
+        if vote == "q":
+            break
+        nb_total_votes += 1
+        nb_votes_block += 1
+        print "Nombre de votes total :", nb_total_votes
+        print "Nombre de votes dans le bloc courant :", nb_votes_block
+        
+        if ((nb_total_votes - 1) % 5) == 0 and nb_total_votes != 1:
+            if nb_total_blocks % NB_MAX_BLOCKS == 0:
+                change_line()
+            else:
+                change_block()
+            trace_stick()
+        elif nb_total_votes % 5 == 0:
             trace_line()
+            nb_total_blocks += 1
+            nb_votes_block = 0
         else:
-            if nb_votes != 1:
+            if nb_votes_block != 1:
                 move_to_next_stick()
             trace_stick()
 
