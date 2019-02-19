@@ -4,6 +4,7 @@
 import rospy, tf2_ros
 import moveit_commander
 import sys
+import copy
 
 from geometry_msgs.msg import Pose
 from tf.transformations import quaternion_from_euler
@@ -17,7 +18,7 @@ STICKS_GAP = 0.015      #Espacement entre les batons de vote
 STICK_LENGTH = 0.04     #Longueur du trait du baton
 BLOCKS_GAP = 0.03       #Espacement entre les blocs
 LINE_GAP = 0.03         #Espacement entre les lignes de vote
-NB_MAX_BLOCKS = 3       #Nombre maximum de blocs sur chaque ligne
+NB_MAX_BLOCKS = 2       #Nombre maximum de blocs sur chaque ligne
 
 def go_to_initial_position():   #Fonction qui amène le robot à la position de départ
     print("En attente de transformation")
@@ -31,6 +32,7 @@ def go_to_initial_position():   #Fonction qui amène le robot à la position de 
         
         print("Déplacement au marqueur fear_start")
         pose_goal.position.x = trans.transform.translation.x
+        print pose_goal.position.x
         pose_goal.position.y = trans.transform.translation.y - 0.10 + 0.03
         pose_goal.position.z = trans.transform.translation.z
         
@@ -48,8 +50,17 @@ def go_to_initial_position():   #Fonction qui amène le robot à la position de 
 def trace_stick():              #Fonction traçant un baton
     move_forward()
     print "Trace un trait"
-    pose_goal.position.z -= STICK_LENGTH
-    go_to_pose_goal() 
+    #pose_goal.position.z -= STICK_LENGTH
+    #go_to_pose_goal()
+    waypoints = []
+    wpose = move_group.get_current_pose().pose
+    wpose.position.z -= STICK_LENGTH
+    waypoints.append(copy.deepcopy(wpose))
+    (plan, fraction) = move_group.compute_cartesian_path(
+                                   waypoints,   # waypoints to follow
+                                   0.01,        # eef_step
+                                   0.0)         # jump_threshold
+    move_group.execute(plan, wait=True)
     move_back()
 
 def trace_line():               #Fonction traçant un trait en diagonale
@@ -91,6 +102,10 @@ def go_to_pose_goal():          #Fonction qui valide la trajectoire du bras
 def change_line():             #Fonction qui change la ligne courante
     print "Change de ligne"
     pose_goal.position.z -= LINE_GAP
+    pose_goal.position.x -= (3 * STICKS_GAP) * NB_MAX_BLOCKS + (NB_MAX_BLOCKS - 1) * BLOCKS_GAP
+    test = (3 * STICKS_GAP) * NB_MAX_BLOCKS + (NB_MAX_BLOCKS - 1) * BLOCKS_GAP
+    print pose_goal.position.x
+    print test
     go_to_pose_goal()
     
 def change_block():             #Fonction qui change le bloc courant
@@ -128,10 +143,10 @@ if __name__=='__main__':        #MAIN
                 change_line()
             else:
                 change_block()
+                nb_total_blocks += 1
             trace_stick()
         elif nb_total_votes % 5 == 0:
             trace_line()
-            nb_total_blocks += 1
             nb_votes_block = 0
         else:
             if nb_votes_block != 1:
