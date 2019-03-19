@@ -9,7 +9,7 @@ from std_msgs.msg import Header, ColorRGBA
 from tf.transformations import quaternion_from_euler
 
 if __name__=='__main__':
-    rospy.init_node('table')            #Initialisation du node 'table'
+    rospy.init_node('table_simulation') #Initialisation du node 'table_simulation'
     rospy.sleep(1)                      
     
     br = tf2_ros.TransformBroadcaster() #Définit l'emetteur de données

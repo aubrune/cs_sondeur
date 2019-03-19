@@ -127,7 +127,7 @@ def count_vote():
     vote_file.close()
 
 if __name__=='__main__':        #MAIN
-    rospy.init_node('sondeur')  #Initialisation du node 'sondeur'
+    rospy.init_node('edo_movement')  #Initialisation du node 'edo_movement'
     rospy.sleep(1)                         
     group_name = "edo"
     move_group = moveit_commander.MoveGroupCommander(group_name)
