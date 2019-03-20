@@ -3,26 +3,19 @@
 
 import rospy, tf2_ros
 import moveit_commander
-import sys
 import copy
-import time
 
 from geometry_msgs.msg import Pose
 from tf.transformations import quaternion_from_euler
-
-nb_total_votes = 0      #Nombre total de votes
-nb_total_blocks = 1     #Nombre total de blocs
-nb_votes_block = 0      #Nombre de votes à l'intérieur du bloc courant
+from std_msgs.msg import String
 
 MARKER_GAP = 0.03       #Espacement entre le marqueur et le tableau
 STICKS_GAP = 0.015      #Espacement entre les batons de vote
 STICK_LENGTH = 0.04     #Longueur du trait du baton
 BLOCKS_GAP = 0.03       #Espacement entre les blocs
 LINE_GAP = 0.03         #Espacement entre les lignes de vote
-NB_MAX_BLOCKS = 2       #Nombre maximum de blocs sur chaque ligne
 
-FILE_PATH = "/home/arbalet/Documents/USB_KEY_DEMO/"
-VOTE_NAME = "fear"
+NB_MAX_BLOCKS = 2       #Nombre maximum de blocs sur chaque ligne
 
 def go_to_initial_position():   #Fonction qui amène le robot à la position de départ
     print("En attente de transformation")
@@ -117,17 +110,12 @@ def change_block():             #Fonction qui change le bloc courant
     pose_goal.position.x += 3 * STICKS_GAP + BLOCKS_GAP
     pose_goal.position.z += STICK_LENGTH
     go_to_pose_goal()
+    
+def callback(data):
+    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
 
-def count_vote():
-    print "Sauvegarde du vote"
-    file_name = FILE_PATH + VOTE_NAME + "_" + time.strftime("%Y-%B-%d_%H-%M-%S") + ".json"
-    file_content = '{"'+VOTE_NAME+'":"'+time.strftime("%Y/%B/%d %H:%M:%S")+'"}'
-    vote_file = open(file_name, "w")
-    vote_file.write(file_content)
-    vote_file.close()
-
-if __name__=='__main__':        #MAIN
-    rospy.init_node('edo_movement')  #Initialisation du node 'edo_movement'
+if __name__=='__main__':            #MAIN
+    rospy.init_node('edo_movement') #Initialisation du node 'edo_movement'
     rospy.sleep(1)                         
     group_name = "edo"
     move_group = moveit_commander.MoveGroupCommander(group_name)
@@ -138,27 +126,29 @@ if __name__=='__main__':        #MAIN
     listener = tf2_ros.TransformListener(tfBuffer)
     rate = rospy.Rate(10.0)
     go_to_initial_position()
+    
     while not rospy.is_shutdown():
-        vote = raw_input("Appuyez sur entrée pour voter ou q pour quitter : ")
-        if vote == "q":
-            break
-        nb_total_votes += 1
-        nb_votes_block += 1
-        print "Nombre de votes total :", nb_total_votes
-        print "Nombre de votes dans le bloc courant :", nb_votes_block
-        count_vote()
-        if ((nb_total_votes - 1) % 5) == 0 and nb_total_votes != 1:
-            if nb_total_blocks % NB_MAX_BLOCKS == 0:
-                change_line()
-            else:
-                change_block()
-                nb_total_blocks += 1
-            trace_stick()
-        elif nb_total_votes % 5 == 0:
-            trace_line()
-            nb_votes_block = 0
-        else:
-            if nb_votes_block != 1:
-                move_to_next_stick()
-            trace_stick()
+        rospy.Subscriber("vote", String, callback)
+        #vote = raw_input("Appuyez sur entrée pour voter ou q pour quitter : ")
+        #if vote == "q":
+            #break
+        #nb_total_votes += 1
+        #nb_votes_block += 1
+        #print "Nombre de votes total :", nb_total_votes
+        #print "Nombre de votes dans le bloc courant :", nb_votes_block
+        #count_vote()
+        #if ((nb_total_votes - 1) % 5) == 0 and nb_total_votes != 1:
+            #if nb_total_blocks % NB_MAX_BLOCKS == 0:
+                #change_line()
+            #else:
+                #change_block()
+                #nb_total_blocks += 1
+            #trace_stick()
+        #elif nb_total_votes % 5 == 0:
+            #trace_line()
+            #nb_votes_block = 0
+        #else:
+            #if nb_votes_block != 1:
+                #move_to_next_stick()
+            #trace_stick()
 
