@@ -17,6 +17,10 @@ LINE_GAP = 0.03         #Espacement entre les lignes de vote
 
 NB_MAX_BLOCKS = 2       #Nombre maximum de blocs sur chaque ligne
 
+nb_total_votes = 0      #Nombre total de votes
+nb_total_blocks = 1     #Nombre total de blocs
+nb_votes_block = 0      #Nombre de votes à l'intérieur du bloc courant
+
 def go_to_initial_position():   #Fonction qui amène le robot à la position de départ
     print("En attente de transformation")
     while not rospy.is_shutdown():
@@ -112,9 +116,37 @@ def change_block():             #Fonction qui change le bloc courant
     go_to_pose_goal()
     
 def callback(data):
-    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
+    global nb_total_votes
+    rospy.loginfo(rospy.get_caller_id() + " - Received from topic value : %s", data.data)
+    nb_total_votes = int(data.data)
+    move_robot()
+    
+def move_robot():
+    global nb_total_votes
+    global nb_votes_block
+    global nb_total_blocks
+    print "Nombre de votes total :", nb_total_votes
+    print "Nombre de votes dans le bloc courant :", nb_votes_block
+    print "Nombre de blocs :", nb_total_blocks
+    #nb_total_votes += 1
+    nb_votes_block += 1
 
-if __name__=='__main__':            #MAIN
+    if ((nb_total_votes - 1) % 5) == 0 and nb_total_votes != 1:
+        if nb_total_blocks % NB_MAX_BLOCKS == 0:
+            change_line()
+        else:
+            change_block()
+            nb_total_blocks += 1
+        trace_stick()
+    elif nb_total_votes % 5 == 0:
+        trace_line()
+        nb_votes_block = 0
+    else:
+        if nb_votes_block != 1:
+            move_to_next_stick()
+        trace_stick()
+
+if __name__=='__main__':    #MAIN     
     rospy.init_node('edo_movement') #Initialisation du node 'edo_movement'
     rospy.sleep(1)                         
     group_name = "edo"
@@ -126,29 +158,10 @@ if __name__=='__main__':            #MAIN
     listener = tf2_ros.TransformListener(tfBuffer)
     rate = rospy.Rate(10.0)
     go_to_initial_position()
-    
+        
     while not rospy.is_shutdown():
         rospy.Subscriber("vote", String, callback)
-        #vote = raw_input("Appuyez sur entrée pour voter ou q pour quitter : ")
-        #if vote == "q":
-            #break
-        #nb_total_votes += 1
-        #nb_votes_block += 1
-        #print "Nombre de votes total :", nb_total_votes
-        #print "Nombre de votes dans le bloc courant :", nb_votes_block
-        #count_vote()
-        #if ((nb_total_votes - 1) % 5) == 0 and nb_total_votes != 1:
-            #if nb_total_blocks % NB_MAX_BLOCKS == 0:
-                #change_line()
-            #else:
-                #change_block()
-                #nb_total_blocks += 1
-            #trace_stick()
-        #elif nb_total_votes % 5 == 0:
-            #trace_line()
-            #nb_votes_block = 0
-        #else:
-            #if nb_votes_block != 1:
-                #move_to_next_stick()
-            #trace_stick()
-
+        #move_robot()
+        rospy.spin()
+        
+ 

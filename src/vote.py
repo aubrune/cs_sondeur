@@ -11,10 +11,8 @@ VOTE_NAME = "fear"
 NB_MAX_BLOCKS = 2       #Nombre maximum de blocs sur chaque ligne
 BUTTON_OVERLOAD = 2
 
-nb_total_votes = 0      #Nombre total de votes
-nb_total_blocks = 1     #Nombre total de blocs
-nb_votes_block = 0      #Nombre de votes à l'intérieur du bloc courant
 time_previous_vote = 0  #Temps noté au vote précédent
+nb_total_votes = 0
 
 def save_vote():
     print "Sauvegarde du vote"
@@ -39,7 +37,7 @@ if __name__=='__main__':        #MAIN
             print "Vote pris en compte"
             time_previous_vote = time.time()
             nb_total_votes += 1
-            nb_votes_block += 1
+            #nb_votes_block += 1
             rospy.loginfo(nb_total_votes)
             publisher.publish(str(nb_total_votes))
             #print "Nombre de votes total :", nb_total_votes
